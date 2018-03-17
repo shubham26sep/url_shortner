@@ -25,6 +25,7 @@ class FetchShortUrlView(views.APIView):
         if not utils.validate_url(long_url):
             return Response({'status': 'FAILED', 'status_codes': ['INVALID_URLS']})
 
+        # get or create short url for long url
         url = serializer.save()
         short_url = url.short_url
         return SuccessResponse({'short_url': short_url})
@@ -42,6 +43,7 @@ class FetchMultipleShortUrlsView(views.APIView):
         serializer.is_valid(raise_exception=True)
         long_urls = serializer.validated_data['long_urls']
 
+        # validating list of long_urls
         invalid_urls = []
         for url in long_urls:
             if not utils.validate_url(url):
@@ -52,10 +54,12 @@ class FetchMultipleShortUrlsView(views.APIView):
 
         long_urls_data = [{'long_url': long_url} for long_url in long_urls]
         
+        # get or create short url for each long url
         serializer = FetchShortUrlSerializer(data=long_urls_data, many=True, context={'request': request})
         serializer.is_valid(raise_exception=True)
         instances = serializer.save()
 
+        # returning short urls data for each long url
         short_urls = {}
         for instance in instances:
             short_urls.update({instance.long_url: instance.short_url})
@@ -75,9 +79,12 @@ class FetchLongUrlView(views.APIView):
         serializer.is_valid(raise_exception=True)
         short_url = serializer.validated_data['short_url']
 
+        
+        # validating url and checking if url exists in database
         if not utils.validate_url(short_url) or not Url.objects.filter(short_url=short_url).first():
             return Response({'status': 'FAILED', 'status_codes': ['SHORT_URLS_NOT_FOUND']})
 
+        # returning short_url respective long_url
         url = Url.objects.filter(short_url=short_url).first()
         return SuccessResponse({'long_url': url.long_url})
 
@@ -94,6 +101,7 @@ class FetchMultipleLongUrlsView(views.APIView):
         serializer.is_valid(raise_exception=True)
         short_urls = serializer.validated_data['short_urls']
         
+        # validating list of short_urls
         invalid_urls = []
         for url in short_urls:
             if not utils.validate_url(url):
@@ -104,6 +112,7 @@ class FetchMultipleLongUrlsView(views.APIView):
 
         instances = []
 
+        # finding all short urls instances from database
         for short_url in short_urls:
             instance = Url.objects.filter(short_url=short_url).first()
             if not instance:
@@ -112,6 +121,7 @@ class FetchMultipleLongUrlsView(views.APIView):
 
             instances.append(instance)
 
+        # returning long urls data for each short url
         long_urls = {}
         for instance in instances:
             long_urls.update({instance.short_url: instance.long_url})
@@ -123,9 +133,10 @@ class ShortUrlServerView(views.APIView):
     '''
     API to redirect to actual url from short url
     '''
-    def get(self, request, hashcode):
+    def post(self, request, hashcode):
         short_url = '%s/%s/' % (utils.get_base_url(request), hashcode)
 
+        # validating url and checking if url exists in database
         if not utils.validate_url(short_url) or not Url.objects.filter(short_url=short_url).first():
             return Response({'status': 'FAILED', 'status_codes': ['SHORT_URLS_NOT_FOUND']})
 
@@ -139,7 +150,7 @@ class ShortUrlServerView(views.APIView):
         url.save()
 
         long_url = url.long_url
-
+        # redirecting short url to long url
         return HttpResponseRedirect(redirect_to=long_url)
 
 
@@ -155,18 +166,21 @@ class FetchShortUrlAccessCount(views.APIView):
         serializer.is_valid(raise_exception=True)
         short_url = serializer.validated_data['short_url']
 
+        # validating url and checking if url exists in database
         if not utils.validate_url(short_url) or not Url.objects.filter(short_url=short_url).first():
             return Response({'status': 'FAILED', 'status_codes': []})
 
+        # fetch access count for given short url from database
         url = Url.objects.filter(short_url=short_url).first()
         access_count = url.access_count
-        return Response({'count': access_count})
+        return SuccessResponse({'count': access_count})
 
 
 class CleanUrlView(views.APIView):
     '''
     API to clean urls from database
     '''
-    def get(self, request):
+    def post(self, request):
+        # deleting all urls from database
         Url.objects.all().delete()
         return SuccessResponse({})

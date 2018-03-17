@@ -15,12 +15,15 @@ class FetchShortUrlSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         long_url = validated_data['long_url']
         
+        # Return instance if long url already exists in database
         instance = Url.objects.filter(long_url=long_url).first()
         if instance:
             return instance
 
+
         short_url_created = False
 
+        # creating hashcode for long url
         while not short_url_created:
             hashcode = str(uuid.uuid4())[:8]
             base_url = utils.get_base_url(request)
@@ -30,6 +33,7 @@ class FetchShortUrlSerializer(serializers.ModelSerializer):
                 short_url_created = True
                 break
 
+        # creating url object in database
         instance = Url.objects.create(long_url=long_url, short_url=short_url)
 
         return instance
@@ -42,17 +46,7 @@ class FetchMultipleShortUrlSerializer(serializers.Serializer):
 class FetchLongUrlSerializer(serializers.Serializer):
 
     short_url = serializers.CharField()
-
-    # def validate(self, attrs):
-    #     short_url = attrs['short_url']
-
-    #     url = Url.objects.filter(short_url=short_url).first()
-    #     if not url:
-    #         raise serializers.ValidationError('SHORT_URLS_NOT_FOUND')
-
-    #     self.url = url
-    #     return attrs
-        
+            
 
 class FetchMultipleLongUrlSerializer(serializers.Serializer):
     short_urls = serializers.ListField(child=serializers.CharField())
