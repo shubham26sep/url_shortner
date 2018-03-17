@@ -1,8 +1,8 @@
 import uuid
+from rest_framework.reverse import reverse
 from rest_framework import serializers
 
 from url_shortner.apps.shorturls.models import Url
-from url_shortner.apps.shorturls import utils
 
 class FetchShortUrlSerializer(serializers.ModelSerializer):
     long_url = serializers.CharField()
@@ -26,8 +26,7 @@ class FetchShortUrlSerializer(serializers.ModelSerializer):
         # creating hashcode for long url
         while not short_url_created:
             hashcode = str(uuid.uuid4())[:8]
-            base_url = utils.get_base_url(request)
-            short_url = '%s/%s/' % (base_url, hashcode)
+            short_url = request.build_absolute_uri(reverse('short-url-server', args=[hashcode]))
             
             if not Url.objects.filter(short_url=short_url).exists():
                 short_url_created = True
