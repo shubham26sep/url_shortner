@@ -1,4 +1,5 @@
 from rest_framework import views
+from rest_framework.reverse import reverse
 from rest_framework.response import Response
 from django.http import HttpResponseRedirect
 
@@ -134,8 +135,7 @@ class ShortUrlServerView(views.APIView):
     API to redirect to actual url from short url
     '''
     def post(self, request, hashcode):
-        short_url = '%s/%s/' % (utils.get_base_url(request), hashcode)
-
+        short_url = request.build_absolute_uri(reverse('short-url-server', args=[hashcode]))
         # validating url and checking if url exists in database
         if not utils.validate_url(short_url) or not Url.objects.filter(short_url=short_url).first():
             return Response({'status': 'FAILED', 'status_codes': ['SHORT_URLS_NOT_FOUND']})
