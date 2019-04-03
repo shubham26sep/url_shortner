@@ -1,4 +1,4 @@
-RIIS
+URL Shortner
 =========
 
 # Installation
